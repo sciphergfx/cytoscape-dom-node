@@ -32,6 +32,10 @@ class CytoscapeDomNode {
             this._add_node(ev.target);
         });
 
+        cy.on('remove', 'node', (ev) => {
+            this._remove_node(ev.target);
+        });
+
         for (let n of cy.nodes())
             this._add_node(n);
 
@@ -80,11 +84,55 @@ class CytoscapeDomNode {
         this._resize_observer.observe(data.dom);
     }
 
+    _remove_node (n) {
+        let id = n.id();
+        let dom = this._node_dom[id]; 
+
+        if (dom) {
+            this._resize_observer.unobserve(dom);
+            if (dom.parentNode === this._nodes_dom_container) {
+                this._nodes_dom_container.removeChild(dom);
+            }
+            delete this._node_dom[id];
+        }
+    }
+
     node_dom (id) {
         return this._node_dom[id];
     }
-}
 
+    remove() {
+        // Stop observing all nodes
+        for (let id in this._node_dom) {
+            this._resize_observer.unobserve(this._node_dom[id]);
+        }
+
+        // Remove all DOM nodes
+        while (this._nodes_dom_container.firstChild) {
+            this._nodes_dom_container.removeChild(this._nodes_dom_container.firstChild);
+        }
+
+        // Clear the node_dom objectff
+        this._node_dom = {};
+
+        // Remove event listeners
+        this._cy.removeListener('add', 'node');
+        this._cy.removeListener('remove', 'node');
+        this._cy.removeListener('pan zoom');
+        this._cy.removeListener('position bounds', 'node');
+
+        // Remove the container if we created it
+        if (!this._params.dom_container) {
+            this._nodes_dom_container.parentNode.removeChild(this._nodes_dom_container);
+        }
+
+        // Clear references
+        this._cy = null;
+        this._params = null;
+        this._nodes_dom_container = null;
+        this._resize_observer = null;
+    }
+}
 
 function register (cy) {
     if (!cy)
@@ -95,10 +143,8 @@ function register (cy) {
     });
 }
 
-
 if (typeof(cytoscape) !== 'undefined') {
     register(cytoscape);
 }
-
 
 module.exports = register;
