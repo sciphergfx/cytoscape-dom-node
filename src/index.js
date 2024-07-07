@@ -86,7 +86,7 @@ class CytoscapeDomNode {
 
     _remove_node (n) {
         let id = n.id();
-        let dom = this._node_dom[id]; 
+        let dom = this._node_dom[id];
 
         if (dom) {
             this._resize_observer.unobserve(dom);
@@ -101,6 +101,29 @@ class CytoscapeDomNode {
         return this._node_dom[id];
     }
 
+    update(id, updateFunction) {
+        let node = this._cy.getElementById(id);
+        if (!node) {
+            console.warn(`Node with id ${id} not found`);
+            return;
+        }
+
+        let dom = this._node_dom[id];
+        if (!dom) {
+            console.warn(`DOM element for node ${id} not found`);
+            return;
+        }
+
+        // Call the update function with the DOM element
+        updateFunction(dom);
+
+        // Update the node's data
+        node.data('dom', dom);
+
+        // Trigger a position update to ensure proper positioning
+        this._cy.trigger('position', ['node', node]);
+    }
+
     remove() {
         // Stop observing all nodes
         for (let id in this._node_dom) {
@@ -112,7 +135,7 @@ class CytoscapeDomNode {
             this._nodes_dom_container.removeChild(this._nodes_dom_container.firstChild);
         }
 
-        // Clear the node_dom objectff
+        // Clear the node_dom object
         this._node_dom = {};
 
         // Remove event listeners
